@@ -8,6 +8,7 @@ try:
 except ImportError:
     wandb = None
 
+import cv2
 
 class Engine:
     def __init__(self, args, model, optimizer, scheduler, loss, loader, ckpt):
@@ -98,6 +99,7 @@ class Engine:
                 self.test_loader, self.args
             )
 
+
         if self.args.re_rank:
             # q_g_dist = np.dot(qf, np.transpose(gf))
             # q_q_dist = np.dot(qf, np.transpose(qf))
@@ -109,6 +111,7 @@ class Engine:
             dist = 1 - torch.mm(qf, gf.t()).cpu().numpy()
 
         r, m_ap = evaluation(dist, query_ids, gallery_ids, query_cams, gallery_cams, 50)
+        print(r, m_ap)
 
         self.ckpt.log[-1, 0] = epoch
         self.ckpt.log[-1, 1] = m_ap
@@ -145,6 +148,8 @@ class Engine:
                 }
             )
 
+
+
     def fliphor(self, inputs):
         inv_idx = torch.arange(inputs.size(3) - 1, -1, -1).long()  # N x C x H x W
         return inputs.index_select(3, inv_idx)
@@ -152,18 +157,23 @@ class Engine:
     def extract_feature(self, loader, args):
         features = torch.FloatTensor()
         pids, camids = [], []
-
+        print('dataset:')
+        print(len(loader.dataset))
         for d in loader:
             inputs, pid, camid = self._parse_data_for_eval(d)
             input_img = inputs.to(self.device)
-            outputs = self.model(input_img)
+            outputs = self.model(input_img) #torch.Size([32, 512, 7])
+        
+            cv2.imshow('img', inputs[0].permute(1, 2, 0).cpu().numpy())
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
             f1 = outputs.data.cpu()
             # flip
             inputs = inputs.index_select(3, torch.arange(inputs.size(3) - 1, -1, -1))
             input_img = inputs.to(self.device)
             outputs = self.model(input_img)
-            f2 = outputs.data.cpu()
+            f2 = outputs.data.cpu() 
 
             ff = f1 + f2
             if ff.dim() == 3:

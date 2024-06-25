@@ -165,6 +165,7 @@ class ImageDataManager(DataManager):
                                                transforms=transforms, norm_mean=norm_mean, norm_std=norm_std,
                                                use_gpu=use_gpu)
         print('=> Loading train (source) dataset')
+        print(self.sources)
         trainset = []
         for name in self.sources:
             trainset_ = init_image_dataset(
@@ -180,6 +181,7 @@ class ImageDataManager(DataManager):
             )
             trainset.append(trainset_)
         trainset = sum(trainset)
+
 
         self._num_train_pids = trainset.num_train_pids
         self._num_train_cams = trainset.num_train_cams
