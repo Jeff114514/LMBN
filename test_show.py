@@ -53,14 +53,9 @@ def main():
     engine = engine_v3.Engine(args, model, optimzer, scheduler, loss, loader, ckpt)
     # engine = engine.Engine(args, model, loss, loader, ckpt)
 
-    n = start + 1
-    while not engine.terminate():
-        n += 1
-        engine.train()
-        if args.test_every != 0 and n % args.test_every == 0:
-            engine.test()
-        elif n == args.epochs:
-            engine.test()
+
+    out = engine.test_show()
+    print(out)
 
 #print(args)
 #  default args = Namespace(nThread=4, cpu=False, nGPU=1, config='',
@@ -110,6 +105,22 @@ if __name__ == "__main__":
     dataPath = os.path.dirname(curPath)
     dataPath = os.path.join(dataPath, 'ReIDataset')
 
+    # args.datadir = dataPath
+    # args.data_train = 'Market1501'
+    # args.data_test = 'Market1501'
+    # args.batchid = 4
+    # args.batchimage = 6
+    # #6G vRAM
+    # args.batchtest = 32
+    # args.test_every = 20
+    # args.epochs = 20   # 120
+    # args.save = 'demo'
+    # args.model = 'LMBN_n'
+    # args.random_erasing = True
+    # args.if_labelsmooth = True
+    # args.w_cosine_annealing = True
+
+    #test
     args.test_only = True
     testPath = curPath #os.path.join(curPath, 'experiment/demo')
     args.config = os.path.join(testPath, 'cfg_lmbn_n_market.yaml')
@@ -118,42 +129,4 @@ if __name__ == "__main__":
     main()
 
 
-def main():
 
-    if args.config != "":
-        with open(args.config, "r") as f:
-            config = yaml.full_load(f)
-        for op in config:
-            setattr(args, op, config[op])
-    torch.backends.cudnn.benchmark = True
-
-    # loader = data.Data(args)
-    ckpt = utility.checkpoint(args)
-    loader = data_v2.ImageDataManager(args)
-    model = make_model(args, ckpt)
-    optimzer = make_optimizer(args, model)
-    loss = make_loss(args, ckpt) if not args.test_only else None
-
-    start = -1
-    if args.load != "":
-        start, model, optimizer = ckpt.resume_from_checkpoint(
-            osp.join(ckpt.dir, "model-latest.pth"), model, optimzer
-        )
-        start = start - 1
-    if args.pre_train != "":
-        ckpt.load_pretrained_weights(model, args.pre_train)
-
-    scheduler = make_scheduler(args, optimzer, start)
-
-    # print('[INFO] System infomation: \n {}'.format(get_pretty_env_info()))
-    ckpt.write_log(
-        "[INFO] Model parameters: {com[0]} flops: {com[1]}".format(
-            com=compute_model_complexity(model, (1, 3, args.height, args.width))
-        )
-    )
-
-    engine = engine_v3.Engine(args, model, optimzer, scheduler, loss, loader, ckpt)
-    # engine = engine.Engine(args, model, loss, loader, ckpt)
-
-    testLoader = loader.test_loader
-    engine.test_one()

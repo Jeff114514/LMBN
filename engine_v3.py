@@ -110,8 +110,9 @@ class Engine:
             # cosine distance
             dist = 1 - torch.mm(qf, gf.t()).cpu().numpy()
 
+        #indices = np.argsort(dist, axis=1)
+
         r, m_ap = evaluation(dist, query_ids, gallery_ids, query_cams, gallery_cams, 50)
-        print(r, m_ap)
 
         self.ckpt.log[-1, 0] = epoch
         self.ckpt.log[-1, 1] = m_ap
@@ -148,6 +149,35 @@ class Engine:
                 }
             )
 
+    def test_show(self):
+        self.ckpt.write_log("\n[INFO] Test:")
+        self.model.eval()
+
+        self.ckpt.add_log(torch.zeros(1, 6))
+
+        with torch.no_grad():
+            qf, query_ids, query_cams, query_img = self.extract_image(
+                self.query_loader, self.args
+            )
+            gf, gallery_ids, gallery_cams = self.extract_feature(
+                self.test_loader, self.args
+            )
+
+
+        if self.args.re_rank:
+            # q_g_dist = np.dot(qf, np.transpose(gf))
+            # q_q_dist = np.dot(qf, np.transpose(qf))
+            # g_g_dist = np.dot(gf, np.transpose(gf))
+            # dist = re_ranking(q_g_dist, q_q_dist, g_g_dist)
+            dist = re_ranking_gpu(qf, gf, 20, 6, 0.3)
+        else:
+            # cosine distance
+            dist = 1 - torch.mm(qf, gf.t()).cpu().numpy()
+
+        indices = np.argsort(dist, axis=1) # 相似度
+        print(indices.shape)
+        print(query_img.shape)
+        return indices[:,:5]
 
 
     def fliphor(self, inputs):
@@ -161,12 +191,13 @@ class Engine:
         print(len(loader.dataset))
         for d in loader:
             inputs, pid, camid = self._parse_data_for_eval(d)
+            
             input_img = inputs.to(self.device)
             outputs = self.model(input_img) #torch.Size([32, 512, 7])
         
-            cv2.imshow('img', inputs[0].permute(1, 2, 0).cpu().numpy())
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            # cv2.imshow('img', inputs[0].permute(1, 2, 0).cpu().numpy())
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
 
             f1 = outputs.data.cpu()
             # flip
@@ -192,6 +223,48 @@ class Engine:
             camids.extend(camid)
 
         return features, np.asarray(pids), np.asarray(camids)
+    
+    def extract_image(self, loader, args):
+        img = torch.FloatTensor()
+        features = torch.FloatTensor()
+        pids, camids = [], []
+        print('dataset:')
+        print(len(loader.dataset))
+        for d in loader:
+            inputs, pid, camid = self._parse_data_for_eval(d)
+
+            img = torch.cat((img, inputs), 0)
+            input_img = inputs.to(self.device)
+            outputs = self.model(input_img) #torch.Size([32, 512, 7])
+        
+            # cv2.imshow('img', inputs[0].permute(1, 2, 0).cpu().numpy())
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
+
+            f1 = outputs.data.cpu()
+            # flip
+            inputs = inputs.index_select(3, torch.arange(inputs.size(3) - 1, -1, -1))
+            input_img = inputs.to(self.device)
+            outputs = self.model(input_img)
+            f2 = outputs.data.cpu() 
+
+            ff = f1 + f2
+            if ff.dim() == 3:
+                fnorm = torch.norm(
+                    ff, p=2, dim=1, keepdim=True
+                )  # * np.sqrt(ff.shape[2])
+                ff = ff.div(fnorm.expand_as(ff))
+                ff = ff.view(ff.size(0), -1)
+
+            else:
+                fnorm = torch.norm(ff, p=2, dim=1, keepdim=True)
+                ff = ff.div(fnorm.expand_as(ff))
+
+            features = torch.cat((features, ff), 0)
+            pids.extend(pid)
+            camids.extend(camid)
+
+        return features, np.asarray(pids), np.asarray(camids), img
 
     def terminate(self):
         if self.args.test_only:
