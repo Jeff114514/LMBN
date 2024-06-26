@@ -15,6 +15,23 @@ from torch.utils.collect_env import get_pretty_env_info
 import yaml
 import torch
 import os
+import cv2
+
+def get_data_by_indexList(loader, ind):
+    size = args.batchtest
+    datas, ids = {}, {}
+    for i, data in enumerate(loader):
+        for j in range(size):
+            lable = i * size + j
+            if lable in ind:
+                datas[lable] = data[0][j]
+                ids[lable] = data[1][j]
+    img, id = [], []
+    for i in ind:
+        img.append(datas[i])
+        id.append(ids[i])
+    return img, id
+
 
 def main():
 
@@ -54,71 +71,38 @@ def main():
     # engine = engine.Engine(args, model, loss, loader, ckpt)
 
 
-    out = engine.test_show()
-    print(out)
+    simMat = engine.test_show()
+    #print(simMat)
 
-#print(args)
-#  default args = Namespace(nThread=4, cpu=False, nGPU=1, config='',
-#  datadir='Market-1501-v15.09.15', data_train='Market1501',
-#  data_test='Market1501', cuhk03_labeled=False, epochs=80,
-#  test_every=20, batchid=16, batchimage=4, batchtest=32,
-#  test_only=False, sampler=True, model='LMBN_n', loss='1*CrossEntropy+1*Triplet',
-#  if_labelsmooth=False, bnneck=False, feat_inference='after',
-#  drop_block=False, w_ratio=1.0, h_ratio=0.3, act='relu', pool='avg',
-#  feats=512, height=384, width=128, num_classes=751, T=1,
-#  num_anchors=2, lr=0.0006, optimizer='ADAM', momentum=0.9,
-#  dampening=0, nesterov=False, beta1=0.9, beta2=0.999, amsgrad=False,
-#  epsilon=1e-08, gamma=0.1, weight_decay=0.0005, decay_type='step',
-#  lr_decay=60, warmup='constant', pcb_different_lr=True, cosine_annealing=False,
-#  w_cosine_annealing=False, parts=6, margin=1.2, re_rank=False,
-#  cutout=False, random_erasing=False, probability=0.5, save='test',
-#  load='', pre_train='', activation_map=False, nep_token='',
-#  nep_id='', nep_name='x.ji/mcmp', reset=False, wandb=False, wandb_name='')
+    query_loader = loader.query_loader
+    gallary_loader = loader.test_loader
 
-#  train
-#  datadir = path, 
-#  data_train = data_set, 
-#  data_test = data_set,
-#  batchid = num,
-#  batchimage = num,
-#  batchtest = num,
-#  test_every = num.
-#  loss = LossFn  #e.g. 0.5*CrossEntropy+0.5*MSLoss
-#  nGPU =  1,
-#  lr = 6e-4
-#  epochs = 100
-#  optimizer = optimizer,
-#  save = 'path'
-#  random_erasing if_labelsmooth w_cosine_annealing = True
+    for i in range(5):
+        qImg, qId = get_data_by_indexList(query_loader, [i])
+        gImgList, gIdList = get_data_by_indexList(gallary_loader, simMat[i])
 
-#  test
-#  test_only = True
-#  config = 'path'
-#  pre_train = 'path'
+        cv2.imshow('query', qImg[0].permute(1, 2, 0).numpy())
+        cv2.imshow('gImg1', gImgList[0].permute(1, 2, 0).numpy())
+        cv2.imshow('gImg2', gImgList[1].permute(1, 2, 0).numpy())
+        cv2.imshow('gImg3', gImgList[2].permute(1, 2, 0).numpy())
+        cv2.imshow('gImg4', gImgList[3].permute(1, 2, 0).numpy())
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        
+
+
+
+
 
 
 if __name__ == "__main__":
-    #train
+    
     args.nThread = 8
     args.nGPU = 1
     curPath = os.path.abspath(os.path.dirname(__file__))
     dataPath = os.path.dirname(curPath)
     dataPath = os.path.join(dataPath, 'ReIDataset')
-
-    # args.datadir = dataPath
-    # args.data_train = 'Market1501'
-    # args.data_test = 'Market1501'
-    # args.batchid = 4
-    # args.batchimage = 6
-    # #6G vRAM
-    # args.batchtest = 32
-    # args.test_every = 20
-    # args.epochs = 20   # 120
-    # args.save = 'demo'
-    # args.model = 'LMBN_n'
-    # args.random_erasing = True
-    # args.if_labelsmooth = True
-    # args.w_cosine_annealing = True
 
     #test
     args.test_only = True
@@ -126,7 +110,21 @@ if __name__ == "__main__":
     args.config = os.path.join(testPath, 'cfg_lmbn_n_market.yaml')
     args.pre_train = os.path.join(testPath, 'lmbn_n_market.pth')
 
+    if args.config != "":
+        with open(args.config, "r") as f:
+            config = yaml.full_load(f)
+        for op in config:
+            setattr(args, op, config[op])
+    torch.backends.cudnn.benchmark = True
+
+    # loader = data_v2.ImageDataManager(args)
+    # query_loader = loader.query_loader
+    # gallary_loader = loader.test_loader
+    # img, ids = get_data_by_indexList(query_loader, [1])
+    # print(img[0].shape)
+    # cv2.imshow('query', img[0].permute(1, 2, 0).numpy())
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+
     main()
-
-
-

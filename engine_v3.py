@@ -156,7 +156,7 @@ class Engine:
         self.ckpt.add_log(torch.zeros(1, 6))
 
         with torch.no_grad():
-            qf, query_ids, query_cams, query_img = self.extract_image(
+            qf, query_ids, query_cams = self.extract_feature(
                 self.query_loader, self.args
             )
             gf, gallery_ids, gallery_cams = self.extract_feature(
@@ -176,7 +176,6 @@ class Engine:
 
         indices = np.argsort(dist, axis=1) # 相似度
         print(indices.shape)
-        print(query_img.shape)
         return indices[:,:5]
 
 
