@@ -103,33 +103,35 @@ def main():
 
 
 if __name__ == "__main__":
-    #train
+    
     args.nThread = 8
     args.nGPU = 1
     curPath = os.path.abspath(os.path.dirname(__file__))
     dataPath = os.path.dirname(curPath)
     dataPath = os.path.join(dataPath, 'ReIDataset')
 
-    # args.datadir = dataPath
-    # args.data_train = 'Market1501'
-    # args.data_test = 'Market1501'
-    # args.batchid = 4
-    # args.batchimage = 6
-    # #6G vRAM
-    # args.batchtest = 32
-    # args.test_every = 20
-    # args.epochs = 20   # 120
-    # args.save = 'demo'
-    # args.model = 'LMBN_n'
-    # args.random_erasing = True
-    # args.if_labelsmooth = True
-    # args.w_cosine_annealing = True
+    #train
+    args.datadir = dataPath
+    args.data_train = 'MyData'
+    args.data_test = 'MyData'
+    args.batchid = 4
+    args.batchimage = 6
+    #6G vRAM
+    args.batchtest = 32
+    args.test_every = 64
+    args.epochs = 5   # 120
+    args.save = 'demo'
+    args.model = 'LMBN_n'
+    args.num_classes = 589
+    args.random_erasing = True
+    args.if_labelsmooth = True
+    args.w_cosine_annealing = True
 
     #test
-    args.test_only = True
-    testPath = curPath #os.path.join(curPath, 'experiment/demo')
-    args.config = os.path.join(testPath, 'cfg_lmbn_n_market.yaml')
-    args.pre_train = os.path.join(testPath, 'lmbn_n_market.pth')
+    # args.test_only = True
+    # testPath = curPath #os.path.join(curPath, 'experiment/demo')
+    # args.config = os.path.join(testPath, 'cfg_lmbn_n_market.yaml')
+    # args.pre_train = os.path.join(testPath, 'lmbn_n_market.pth')
 
     main()
 

@@ -20,3 +20,4 @@ from .msmt17 import MSMT17
 from .mot17 import MOT17
 #from .veri import VeRi
 from .aicity24 import AICity24Balanced
+from .mydata import MyData

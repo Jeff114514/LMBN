@@ -24,6 +24,7 @@ __image_datasets = {
     "mot17": MOT17,
     #"veri": VeRi,
     "aicity24": AICity24Balanced,
+    'mydata':MyData,
 }
 
 

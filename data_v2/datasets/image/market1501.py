@@ -96,3 +96,4 @@ class Market1501(ImageDataset):
             data.append((img_path, pid, camid))
 
         return data
+    
